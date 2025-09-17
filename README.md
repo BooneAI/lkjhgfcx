@@ -1,184 +1,184 @@
-![Gatsby E-commerce theme designed by Matter](https://user-images.githubusercontent.com/43764894/223762927-2e463570-b09a-4d51-ab81-2e0fa8aa2c70.png)
+# Loan Monitor
 
-This beautiful theme from the [Matter Design Team](https://matterdesign.com.au/) gives you the styling and scaffolding for your next e-commerce site. You can customize to your heart's content and add the tooling for cart, transactions, product, and more. This theme uses:
+A Python toolkit for monitoring loan-to-value (LTV) exposure on leveraged crypto loans and automating corrective actions. The
+project bundles asynchronous price polling, reserve orchestration, repayment utilities, simulation tooling, and a human-friendly
+dashboard so teams can keep liquidation risk under control.
 
-- [Gatsby](https://www.gatsbyjs.com/)
-- [CSS Modules](https://github.com/css-modules/css-modules)
-- [Prettier](https://prettier.io/)
-- [React Helmet](https://github.com/nfl/react-helmet)
+The repository still contains the original Gatsby starter site, but the active code lives in the `loan_monitor/` Python package
+and the accompanying test suite under `tests/`.
 
-Take a look at the screenshot below or preview the live site here: https://gatsby-ecommerce-theme.netlify.app/!
-![full page screenshot](https://res.cloudinary.com/dzkoxrsdj/image/upload/v1653371030/CleanShot_2022-05-24_at_01.11.52_2x_bspa8c.jpg)
+## Features
 
-> 🧐 Please be aware that some aspects of this theme are not fully functional and will need to be integrated with the recommended tooling mentioned at the end of the [README](#next-steps-with-this-theme). 
+- **Config-driven setup** – Centralise API keys, loan balances, collateral holdings, thresholds, and platform terms in
+  `config.yaml` or via `LOAN_MONITOR_CONFIG`.
+- **Persistent state** – SQLite tables retain loan principal, interest accrual, and historical collateral snapshots across
+  restarts.
+- **Asynchronous LTV monitoring** – Fetch BTC/USDT prices with failover, compute LTV, and raise alerts through pluggable
+  notifiers when thresholds (80 %, 85 %, 91 %) are breached.
+- **Reserve & policy management** – Track pledged versus unpledged assets, transfer reserves, and execute automated top-up or
+  repayment policies when alerts fire.
+- **Repayment workflows** – Validate paydowns, update balances, and recalculate LTV with optional dry-run simulations.
+- **Simulation suite** – Plan collateral buffers, model volatility across collateral mixes, and stress-test extreme price moves
+  with tabular and plotting support.
+- **Dashboard snapshot** – Aggregate real-time metrics and static platform terms into a concise CLI dashboard or JSON payload for
+  downstream tooling.
+- **Structured logging** – JSON log helpers make it simple to forward operational events into log pipelines.
 
-## Table of Contents:
+## Getting Started
 
-- [Quick Steps + Deploy Options](#quick-setup--deploy-option)
-  - [Cloning + Installing Packages](#cloning--installing-packages)
-- [Deploying](#deploying)
-- [Project Structure](#project-structure)
-  - [Making Changes to the Hero Component](#making-changes-to-the-hero-component)
-  - [Making Changes to the Header or Footer](#making-content-changes-to-the-header-or-footer)
-- [Testing](#testing)
-  - [Included Default Testing](#included-default-testing)
-  - [Removing Renovate](#removing-renovate)
-- [Next Steps with This Theme](#next-steps-with-this-theme)
+1. **Create a virtual environment** (Python 3.10+ recommended):
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **Review configuration** – Copy `config.yaml` or `.env.example` for your environment and update loan balances, collateral,
+   alert thresholds, notification channels, and platform terms. The configuration loader will create a SQLite database at
+   `loan_monitor/loan_monitor.db` on first run.
+4. **Initialise the database** – The schema is created automatically when any command touches the database. To pre-create it you
+   can run:
+   ```bash
+   python - <<'PY'
+   from loan_monitor.db import get_connection
+   get_connection().close()
+   PY
+   ```
+5. **Run tests** to verify the environment:
+   ```bash
+   pytest
+   ```
 
-## Quick Setup + Deploy Option
+## Configuration Reference
 
-Click the button below and it will help you create a new repo, create a new Netlify project, and deploy this Theme!
+`config.yaml` governs runtime behaviour:
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/netlify-templates/gatsby-ecommerce-theme&utm_source=github&utm_medium=matter-design-theme-repo&utm_campaign=template-team)
-
-## Regular Setup
-
- ### Cloning + Installing Packages
- 
-  - Clone this repo with one of these options:
-
-    - Click the 'Use this template' button at the top of the page
-    - Via the command line:
-       ```shell
-       git clone https://github.com/netlify-templates/gatsby-ecommerce-theme/
-       ```
-    - Or you can clone the theme straight from the Netlify CLI, using the `netlify sites:create-template` command in your terminal ([learn more about this command here](https://www.netlify.com/blog/create-a-site-from-a-template-using-the-netlify-cli)) to do the entire flow for you.
-
-  From there, you can install the project's dependencies by running:
-
-  ```shell
-  npm install or yarn install
-  ```
-
-  Finally, you can run your project locally with:
-
-  ```shell
-  cd gatsby-sydney-ecommerce-theme/
-  npm start or yarn start
-  ```
-  
-  or, run it using the Netlify CLI with:
-  
-  ```shell
-  netlify run dev
-  ```
-  
-  Open your browser and visit <http://localhost:5000>, your project should now be running!
-  
-  ## Deploying
- 
-  After installing and customizing your new e-commerce theme it's now time to deploy! 
-  
-   -  You can Deploy using the [Netlify CLI](https://cli.netlify.com/):
-
-      ```bash
-      netlify init # initialize a new Netlify project & deploy
-      ```
-
-   It will use the information from the included Netlify configuration file, [`netlify.toml`](./netlify.toml), to set up the build command as `gatsby build` to create a static project and locate the build project in the `public` directory.
-
-   The `init` process will also set up continuous deployment for your project so that a new build will be triggered & deployed when you push code to the repo (you can change this from your project dashboard: Site Settings/Build & deploy/Continuous Deployment).
-
-   You can also use `netlify deploy (--prod)` to manually deploy and `netlify open` to open your project dashboard.
-
-  > 💡 we only have so many keystrokes to give, use `ntl` shorthand for `netlify` or make [an alias of your own](https://www.netlify.com/blog/2020/04/12/speed-up-productivity-with-terminal-aliases/) to save hours...of accumulated milliseconds
-
-  - You can deploy within the Netlify site by connecting to git, this [video](https://www.youtube.com/watch?v=4h8B080Mv4U&t=107s) will walk you through that process. 
-  - Or, you can use the Deploy to Netlify button which will walk you through the process of spinning up a repo, creating a new project in Netlify, AND deploying it :)
-
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/netlify-templates/gatsby-ecommerce-theme&utm_source=github&utm_medium=matter-design-theme-repo&utm_campaign=template-team)
-
-## Project Structure
-
-Here is a bit of an overview of the directory structure of the project:
-
-| Directory | Description |
-| :---- | :---- |
-| `src/components/` | Stores reusable elements across the site. (e.g. BlogPreview element) |
-| `src/pages/` | Stores routes for a user to go to based on each `.js` file and nested folder (e.g. `src/pages/about.js` creates a route `/about` in the web app) |
-| `src/helpers` | Stores mock data for the blog or product list and general utility functions. |
-
-### Making changes to the Hero component
-
-On the homepage of the website and a few other places, there is a full-width image component. We refer to this as the `<Hero/>` component. Here is a bit of an overview of what its API looks like:
-
-```jsx
-<Hero
-  maxWidth='500px' // how big the image's maxumim should be
-  image={'/banner1.png'} // the source location for the image
-  title={'Essentials for a cold winter'} // the main text displayed
-  subtitle={'Discover Autumn Winter 2021'} // text found below the main text
-  ctaText={'shop now'} // the presented text for a user to click on
-  ctaAction={goToShop} // the location the call-to-action text directs users
-/>
+```yaml
+api_keys:
+  binance: ""
+  coingecko: ""
+loan:
+  principal: 1000.0
+  interest: 0.0
+collateral:
+  btc: 0.5
+  usdt: 200.0
+reserves:
+  btc: 0.1
+  usdt: 50.0
+thresholds:
+  warning: 0.8
+  margin_call: 0.85
+  liquidation: 0.91
+poll_interval: 600
+notification_channels:
+  - console
+policy:
+  type: auto_topup
+  topup_percent: 0.5
+  repay_percent: 0.25
+terms:
+  platform: "Binance Flexible Loan"
+  initial: 0.78
+  warning: 0.8
+  margin_call: 0.85
+  liquidation: 0.91
+  liquidation_fee: 0.02
+  last_reviewed: "2023-01-01"
+  documentation_url: "https://www.binance.com/en/support/faq/1c9dddb774054983992b8977ae36577a"
+  notes: "Thresholds reflect Binance defaults and should be revalidated."
 ```
 
-You can see it in action under [`src/pages/index.js`](./src/pages/index.js) or see the component in [`src/components/Hero/Hero.js`](./src/components/Hero/Hero.js).
+- **thresholds** drive alerting for the monitoring loop and the dashboard status classification.
+- **policy** controls reserve behaviour: `auto_topup`, `auto_repay`, or `manual`.
+- **terms** captures official exchange terms surfaced in the dashboard for fast auditing.
+- Secrets can be sourced from environment variables if you prefer to keep API keys out of the repository.
 
-### Making content changes to the Header or Footer
+## CLI Usage
 
-The project contains a file named `src/config.json`. Inside of this file describes the content of the header links (`headerLinks`) as well as the footer links (`footerLinks`). For the header, each element in the array has a base structure of:
+The toolkit exposes a unified CLI via `python -m loan_monitor.cli` or by installing the package and running `loan-monitor`.
 
-```json
-{
-  "menuLabel": "The label that is given to a user",
-  "menuLink": "The URL that this should take a user to"
-}
+| Command | Purpose |
+| --- | --- |
+| `show` | Display pledged and unpledged balances tracked by the reserve manager. |
+| `transfer <asset> <amount> to_collateral|to_reserve` | Move funds between reserve pools. |
+| `repay <amount> [--dry-run]` | Validate and execute a repayment against the loan principal. |
+| `plan --btc-price <price> [--loan <amount>] [--target-ltv <ratio>]` | Calculate BTC/USDT collateral required for a target starting LTV. |
+| `simulate --btc-price <price> --drops <...>` | Model LTV paths for multiple collateral mixes across price drops. |
+| `stress --btc-price <price> --drops <...>` | Stress-test extreme moves and compute remediation (top-up / repay) actions. |
+| `dashboard [--json]` | Render a consolidated snapshot of LTV, collateral, platform terms, and recommended actions. |
+
+Example dashboard output:
+
+```
+$ python -m loan_monitor.cli dashboard
+Generated at: 2024-01-15T12:34:56.789012+00:00
+Status: Safe
+LTV: 66.67%
+BTC price: $200.00
+Debt outstanding: $100.00
+Collateral:
+  BTC: 0.500000 ≈ $100.00
+  USDT: $50.00
+Total collateral value: $150.00
+Thresholds: warning 80.00%, margin call 85.00%, liquidation 91.00%
+Recommended action: Position is within safe bands. Continue monitoring.
+Margin-call buffer: 18.33% headroom (~32.35% price drop to $135.30)
+Last loan update: 2024-01-15 12:20:00
+Last collateral update: 2024-01-15 12:30:00
+Platform terms:
+  Platform: Binance Flexible Loan
+  Initial: 78.00%
+  Warning: 80.00%
+  Margin Call: 85.00%
+  Liquidation: 91.00%
+  Liquidation Fee: 2.00%
+  Last Reviewed: 2023-01-01
+  Documentation Url: https://www.binance.com/en/support/faq/1c9dddb774054983992b8977ae36577a
+  Notes: Thresholds reflect Binance defaults and should be revalidated.
 ```
 
-If you want the menu item to have a dropdown, you can also add a `category` key with the value being an array of the categories and their containing elements, here's what the base could look like:
+Pass `--json` to integrate the snapshot with other systems.
 
-```json
-{
-  "menuLabel": "The label that is given to a user",
-  "menuLink": "The URL that this should take a user to",
-  "category": [
-    {
-      "categoryLabel": "Label you want the category to have",
-      "submenu": [
-        {
-          "menuLabel": "A label underneath the category",
-          "menuLink": "The associated link to this label"
-        }
-      ]
-    }
-  ]
-}
-```
+## Documentation
 
-The footer works in a similar way. It assumes each element in the array has a heading and an array of associated links to direct folks to:
+Detailed usage notes and operational guidance live in the `docs/` directory:
 
-```json
-"footerLinks": [
-    {
-      "subTitle": "Label of the column in the footer",
-      "links": [
-        {
-          "text": "Text to display to the user",
-          "link": "URL of where to take the user to when clicked"
-        },
-      ]
-    }
-]
-```
+- [`docs/architecture.md`](docs/architecture.md) – component responsibilities, data flow, and persistence model.
+- [`docs/usage.md`](docs/usage.md) – end-to-end CLI workflows for monitoring, reserve management, repayment, simulations, and the dashboard.
+- [`docs/troubleshooting.md`](docs/troubleshooting.md) – guidance for common setup and runtime issues.
+
+These markdown files can be fed into MkDocs or another static site generator if you want to publish internal docs.
 
 ## Testing
 
-### Included Default Testing
+Run the automated test suite before committing changes:
 
-We’ve included some tooling that helps us maintain these templates. This template currently uses:
+```bash
+pytest
+```
 
-- [Renovate](https://www.mend.io/free-developer-tools/renovate/) - to regularly update our dependencies
+Tests cover price fetching, LTV computations, reserve policies, repayment validation, simulation helpers, and the dashboard
+snapshot builder.
 
-If your team is not interested in this tooling, you can remove them with ease!
+## Troubleshooting & Tips
 
-### Removing Renovate
+- **Network sandboxing:** Price fetching requires outbound HTTPS access. When running offline, monkeypatch `PriceService.get_price`
+  in your scripts or rely on the test doubles provided in the suite.
+- **Database location:** Override the database path with `LOAN_MONITOR_DB_PATH` if running multiple environments on the same host.
+- **Structured logs:** Import `loan_monitor.logging_setup.setup_logging()` early in your application entrypoint to receive JSON logs.
+- **Configuration overrides:** Set `LOAN_MONITOR_CONFIG=/path/to/config.yaml` to load environment-specific settings without editing
+  the repo copy.
+- **Historical analysis:** The `collateral_snapshot` table records every submission; query it directly or export to your analytics
+  stack for trend analysis.
 
-In order to keep our project up-to-date with dependencies we use a tool called [Renovate](https://github.com/marketplace/renovate). If you’re not interested in this tooling, delete the `renovate.json` file and commit that onto your main branch.
+## Roadmap
 
-## Next Steps with this theme
+Future milestones include the security and observability enhancements outlined in the development plan: JWT + TOTP enforcement,
+role-based access control, Prometheus metrics, multi-exchange diversification, and containerised deployment workflows.
 
-This project is intended to be extended by you! We wanted to make possible to replace parts of it with your own tools and data sources. If you're interested on a direction, you can refer to Matter's [how to use section](https://gatsby-ecommerce-theme.netlify.app/how-to-use/) in this project or you may want to consider using [Matter's toolset with their JAMM framework](https://matterdesign.com.au/service/headless-commerce-with-jamm/) which includes some projects like:
-- [BigCommerce](https://bigcommerce.zfrcsk.net/c/2429593/854992/2941) for a headless e-commerce solution
-- [Builder](https://www.builder.io) as a CMS for the blog articles or other content creation
-- [Klaviyo](https://www.klaviyo.com/) for any email or SMS marketing automation
+---
+
+Need help or have suggestions? Open an issue or share feedback so we can continue hardening the loan monitoring workflow.

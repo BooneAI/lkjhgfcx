@@ -1,0 +1,32 @@
+api_keys:
+  binance: ""
+  coingecko: ""
+loan:
+  principal: 0.0
+collateral:
+  btc: 0.0
+  usdt: 0.0
+reserves:
+  btc: 0.0
+  usdt: 0.0
+thresholds:
+  warning: 0.8
+  margin_call: 0.85
+  liquidation: 0.91
+poll_interval: 600
+notification_channels:
+  - console
+policy:
+  type: manual
+  topup_percent: 0.5
+  repay_percent: 0.5
+terms:
+  platform: "Binance Flexible Loan"
+  initial: 0.78
+  warning: 0.8
+  margin_call: 0.85
+  liquidation: 0.91
+  liquidation_fee: 0.02
+  last_reviewed: "2023-01-01"
+  documentation_url: "https://www.binance.com/en/support/faq/1c9dddb774054983992b8977ae36577a"
+  notes: "Thresholds reflect Binance Flexible Loan defaults but may change."
