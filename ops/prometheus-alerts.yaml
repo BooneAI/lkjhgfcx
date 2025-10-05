@@ -1,0 +1,24 @@
+groups:
+  - name: loan-monitor
+    rules:
+      - alert: LoanMonitorDown
+        expr: loan_monitor_health_status == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: loan-monitor
+        annotations:
+          summary: "Loan monitor last health check failed"
+          description: |
+            No successful monitoring cycles have been recorded for more than five minutes.
+            Investigate the service logs and restart the worker if necessary.
+      - alert: LoanMonitorPriceFailures
+        expr: increase(loan_monitor_price_failures_total[15m]) > 3
+        labels:
+          severity: warning
+          service: loan-monitor
+        annotations:
+          summary: "Repeated price fetch failures"
+          description: |
+            Price lookups have failed repeatedly in the last 15 minutes. Check exchange
+            connectivity and API credentials.
