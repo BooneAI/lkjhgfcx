@@ -12,17 +12,27 @@ const CurrencyFormatter = ({
     (typeof amount !== 'number' && parseFloat(amount?.replace('$', ''))) ||
     amount;
   /* Set language display */
+  const fallbackLanguage = 'en-US';
   const languageCode =
     typeof window !== 'undefined'
-      ? window.navigator.language || 'en-AU'
-      : 'en-AU';
+      ? window.navigator.language || fallbackLanguage
+      : fallbackLanguage;
+  const normalisedLanguage = languageCode.split('@')[0] || fallbackLanguage;
 
   /* Format and return */
   // isolate currency
-  const formatObject = new Intl.NumberFormat(languageCode, {
-    style: 'currency',
-    currency,
-  });
+  let formatObject;
+  try {
+    formatObject = new Intl.NumberFormat(normalisedLanguage, {
+      style: 'currency',
+      currency,
+    });
+  } catch (err) {
+    formatObject = new Intl.NumberFormat(fallbackLanguage, {
+      style: 'currency',
+      currency,
+    });
+  }
   let symbol = '$';
   let formattedPrice = formatObject.format(displayAmount);
   if ('formatToParts' in formatObject) {

@@ -137,6 +137,11 @@
       "menuLabel": "About",
       "menuLink": "/about",
       "category": null
+    },
+    {
+      "menuLabel": "Loan Dashboard",
+      "menuLink": "/dashboard",
+      "category": null
     }
   ],
   "filters": [

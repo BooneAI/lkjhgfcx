@@ -1,0 +1,137 @@
+api_keys:
+  # Store real values with `loan-monitor secrets set api_keys.<name> <value>`.
+  binance: ""
+  coingecko: ""
+loan:
+  principal: 0.0
+collateral:
+  btc: 0.0
+  usdt: 0.0
+reserves:
+  btc: 0.0
+  usdt: 0.0
+default_profile: core
+profiles:
+  - id: core
+    name: Core Loan
+    loan:
+      principal: 0.0
+    collateral:
+      btc: 0.0
+      usdt: 0.0
+    reserves:
+      btc: 0.0
+      usdt: 0.0
+    policy:
+      type: manual
+    thresholds:
+      warning: 0.8
+      margin_call: 0.85
+      liquidation: 0.91
+    notification_channels:
+      - console
+    exchanges:
+      - binance-main
+      - nexo-yield
+  - id: experimental
+    name: Experimental Loan
+    loan:
+      principal: 0.0
+    collateral:
+      btc: 0.0
+      usdt: 0.0
+    reserves:
+      btc: 0.0
+      usdt: 0.0
+    policy:
+      type: manual
+    thresholds:
+      warning: 0.78
+      margin_call: 0.83
+      liquidation: 0.9
+    notification_channels:
+      - console
+exchanges:
+  - name: binance-main
+    platform: binance
+    collateral:
+      btc: 0.25
+      usdt: 150.0
+    loan_outstanding: 500.0
+    # Exchange credentials can also be managed via the secrets vault
+    # (e.g. `secrets set exchanges.binance-main.api_key <value>`).
+    safe_withdrawal_ltv: 0.3
+    profile: core
+  - name: nexo-yield
+    platform: nexo
+    collateral:
+      btc: 0.15
+      usdt: 75.0
+    loan_outstanding: 250.0
+    safe_withdrawal_ltv: 0.32
+    profile: core
+thresholds:
+  warning: 0.8
+  margin_call: 0.85
+  liquidation: 0.91
+poll_interval: 600
+notification_channels:
+  - console
+policy:
+  type: manual
+  topup_percent: 0.5
+  repay_percent: 0.5
+hedging:
+  enabled: false
+  require_consent: true
+  consent_prompt: "Derivatives can lose more than the premium paid. Proceed only if you understand the risks."
+  consent_version: "v1"
+  knowledge_check:
+    - id: risk
+      prompt: "What is the maximum loss when purchasing a protective put?"
+      correct_answers:
+        - "premium"
+        - "the option premium"
+    - id: leverage
+      prompt: "Can futures losses exceed collateral posted?"
+      correct_answers:
+        - "yes"
+  allowed_strategies:
+    - put_option
+    - short_futures
+  paper_trading: true
+  default_implied_vol: 0.6
+  risk_free_rate: 0.02
+  futures_margin_ratio: 0.1
+  max_notional: 5000.0
+terms:
+  platform: "Binance Flexible Loan"
+  initial: 0.78
+  warning: 0.8
+  margin_call: 0.85
+  liquidation: 0.91
+  liquidation_fee: 0.02
+  last_reviewed: "2023-01-01"
+  documentation_url: "https://www.binance.com/en/support/faq/1c9dddb774054983992b8977ae36577a"
+  notes: "Thresholds reflect Binance Flexible Loan defaults but may change."
+security:
+  jwt_secret: "replace-with-strong-secret"
+  token_ttl_seconds: 900
+  totp_valid_window: 1
+  users:
+    admin:
+      role: admin
+      totp_secret: "JBSWY3DPEHPK3PXP"
+    trader:
+      role: trader
+      totp_secret: "NB2W45DFOIZA===="
+observability:
+  enable_metrics: true
+  metrics_port: 9000
+web:
+  host: 0.0.0.0
+  port: 8000
+  allowed_origins:
+    - http://localhost:5000
+    - http://127.0.0.1:5000
+    - http://localhost:8000

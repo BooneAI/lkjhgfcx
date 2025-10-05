@@ -1,0 +1,13 @@
+site_name: Loan Monitor Documentation
+site_url: https://example.com/loan-monitor
+repo_url: https://github.com/example/loan-monitor
+theme:
+  name: material
+nav:
+  - Overview: usage.md
+  - Architecture: architecture.md
+  - Observability & Alerting: observability.md
+  - Reporting & Analytics: reporting.md
+  - CI/CD & Deployment: ci_cd.md
+  - Troubleshooting: troubleshooting.md
+docs_dir: docs
