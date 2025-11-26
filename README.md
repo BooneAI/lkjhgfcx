@@ -20,9 +20,11 @@ and the accompanying test suite under `tests/`.
 - **Repayment workflows** – Validate paydowns, update balances, and recalculate LTV with optional dry-run simulations.
 - **Simulation suite** – Plan collateral buffers, model volatility across collateral mixes, and stress-test extreme price moves
   with tabular and plotting support.
-- **Dashboard snapshot** – Aggregate real-time metrics and static platform terms into a concise CLI dashboard or JSON payload for
-  downstream tooling.
-- **Structured logging** – JSON log helpers make it simple to forward operational events into log pipelines.
+  - **Dashboard snapshot** – Aggregate real-time metrics and static platform terms into a concise CLI dashboard or JSON payload for
+    downstream tooling.
+  - **Structured logging** – JSON log helpers make it simple to forward operational events into log pipelines.
+  - **Role-based security** – JWT tokens issued after TOTP verification guard reserve transfers and repayments with trader/admin roles.
+  - **Observability hooks** – Optional Prometheus metrics expose price latency, LTV trends, and alert counters for dashboards.
 
 ## Getting Started
 
@@ -36,9 +38,16 @@ and the accompanying test suite under `tests/`.
    pip install -r requirements.txt
    ```
 3. **Review configuration** – Copy `config.yaml` or `.env.example` for your environment and update loan balances, collateral,
-   alert thresholds, notification channels, and platform terms. The configuration loader will create a SQLite database at
-   `loan_monitor/loan_monitor.db` on first run.
-4. **Initialise the database** – The schema is created automatically when any command touches the database. To pre-create it you
+   alert thresholds, notification channels, platform terms, and the `security` block with user roles and TOTP secrets. The
+   configuration loader will create a SQLite database at `loan_monitor/loan_monitor.db` on first run.
+4. **Generate an authentication token** – Use the configured TOTP secret with the CLI to obtain a JWT for state-changing
+   operations:
+   ```bash
+   python -m loan_monitor.cli auth --user trader --totp 123456
+   export LOAN_MONITOR_TOKEN="<token>"
+   ```
+   Tokens expire after `token_ttl_seconds`; rerun the command when prompted.
+5. **Initialise the database** – The schema is created automatically when any command touches the database. To pre-create it you
    can run:
    ```bash
    python - <<'PY'
@@ -46,7 +55,7 @@ and the accompanying test suite under `tests/`.
    get_connection().close()
    PY
    ```
-5. **Run tests** to verify the environment:
+6. **Run tests** to verify the environment:
    ```bash
    pytest
    ```
@@ -89,11 +98,23 @@ terms:
   last_reviewed: "2023-01-01"
   documentation_url: "https://www.binance.com/en/support/faq/1c9dddb774054983992b8977ae36577a"
   notes: "Thresholds reflect Binance defaults and should be revalidated."
+security:
+  jwt_secret: "replace-with-strong-secret"
+  token_ttl_seconds: 900
+  users:
+    trader:
+      role: trader
+      totp_secret: "JBSWY3DPEHPK3PXP"
+observability:
+  enable_metrics: true
+  metrics_port: 9000
 ```
 
 - **thresholds** drive alerting for the monitoring loop and the dashboard status classification.
 - **policy** controls reserve behaviour: `auto_topup`, `auto_repay`, or `manual`.
 - **terms** captures official exchange terms surfaced in the dashboard for fast auditing.
+- **security** defines JWT/TOTP parameters and user roles. Generate TOTP codes with authenticator apps and keep secrets private.
+- **observability** toggles the Prometheus metrics server and sets the scrape port.
 - Secrets can be sourced from environment variables if you prefer to keep API keys out of the repository.
 
 ## CLI Usage
@@ -103,8 +124,9 @@ The toolkit exposes a unified CLI via `python -m loan_monitor.cli` or by install
 | Command | Purpose |
 | --- | --- |
 | `show` | Display pledged and unpledged balances tracked by the reserve manager. |
-| `transfer <asset> <amount> to_collateral|to_reserve` | Move funds between reserve pools. |
-| `repay <amount> [--dry-run]` | Validate and execute a repayment against the loan principal. |
+| `auth --user <name> --totp <code>` | Exchange a valid TOTP code for a short-lived JWT token. |
+| `transfer <asset> <amount> to_collateral|to_reserve [--token]` | Move funds between reserve pools (requires trader token). |
+| `repay <amount> [--dry-run] [--token]` | Validate and execute a repayment against the loan principal (requires trader token). |
 | `plan --btc-price <price> [--loan <amount>] [--target-ltv <ratio>]` | Calculate BTC/USDT collateral required for a target starting LTV. |
 | `simulate --btc-price <price> --drops <...>` | Model LTV paths for multiple collateral mixes across price drops. |
 | `stress --btc-price <price> --drops <...>` | Stress-test extreme moves and compute remediation (top-up / repay) actions. |
@@ -142,6 +164,16 @@ Platform terms:
 
 Pass `--json` to integrate the snapshot with other systems.
 
+## Observability & Deployment
+
+- **Prometheus metrics** – Set `observability.enable_metrics: true` in `config.yaml` to expose counters and gauges on
+  `metrics_port` (default `9000`). Scrape the `/metrics` endpoint with Prometheus or another collector to monitor price latency,
+  alert counts, and recent LTV values.
+- **CI/CD** – GitHub Actions (`.github/workflows/ci.yml`) runs linting, tests, and a Docker build on every push or pull
+  request to `main`, `master`, or `work` branches.
+- **Container image** – Build a runnable image locally with `docker build . -t loan-monitor:latest`. The default command emits a
+  JSON dashboard snapshot; override `CMD` or provide environment variables to run alternative workflows inside the container.
+
 ## Documentation
 
 Detailed usage notes and operational guidance live in the `docs/` directory:
@@ -158,6 +190,7 @@ Run the automated test suite before committing changes:
 
 ```bash
 pytest
+ruff check loan_monitor tests
 ```
 
 Tests cover price fetching, LTV computations, reserve policies, repayment validation, simulation helpers, and the dashboard

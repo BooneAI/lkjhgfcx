@@ -36,6 +36,17 @@ Common pitfalls and fixes when operating the `loan_monitor` toolkit.
 - **JSON serialisation** – `dashboard --json` returns floating-point values. Use `jq` or your preferred JSON processor to format the
   output for dashboards.
 
+## Authentication Errors
+
+- **`invalid TOTP`** – Confirm the authenticator app is configured with the same base32 secret as `config.yaml`. TOTP codes are time-based; ensure the device clock is in sync (NTP) and regenerate a fresh code.
+- **`insufficient role`** – The token’s `role` claim must meet or exceed the required permission (`trader` for transfers/repayments). Issue a token for a user with the appropriate role or adjust the command to a read-only alternative.
+- **`invalid token`** – Tokens expire after `token_ttl_seconds`. Run the `auth` command again and update the `LOAN_MONITOR_TOKEN` environment variable.
+
+## Metrics Endpoint
+
+- **Address already in use** – If the Prometheus server cannot bind to the configured port, choose another `observability.metrics_port` or disable metrics locally by setting `enable_metrics: false`.
+- **No `/metrics` output** – Metrics are only exposed when `enable_metrics: true`. Restart the monitoring service after changing configuration so the HTTP server is initialised.
+
 ## Testing & Development
 
 - **pytest cannot import modules** – The test suite injects the repository root into `sys.path`. If you restructure directories,

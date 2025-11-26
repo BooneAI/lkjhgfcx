@@ -17,6 +17,8 @@ codebase as you add security, observability, or dashboarding layers.
 | **Simulation Suite** | `loan_monitor.services.simulations` hosts collateral planning, volatility modelling, and stress-test utilities. These reuse `compute_ltv` to stay consistent with live monitoring. |
 | **Dashboard** | `loan_monitor.services.dashboard` (added in Step 6) assembles a snapshot that blends live LTV metrics, collateral state, and static platform terms for CLI or JSON consumption. |
 | **Notifications** | `loan_monitor.notifications` defines the base notifier interface; concrete implementations (console, Slack, email) can be registered in `config.yaml`. |
+| **Security** | `loan_monitor.security.AuthManager` validates TOTP codes, issues JWTs, and checks role-based permissions for write operations. |
+| **Observability** | `loan_monitor.metrics` exposes Prometheus counters and gauges (price latency, alert totals, monitoring errors) with an optional HTTP endpoint. |
 
 ## Data Flow
 
@@ -36,7 +38,8 @@ pattern:
 
 1. Load configuration (`load_config`).
 2. Ensure the database schema exists (`ReserveManager` or explicit connections).
-3. Run the requested service (reserve transfer, repayment, simulation, or dashboard) and print the results.
+3. For state-changing commands, validate the JWT (from `loan_monitor.security`) before calling into services.
+4. Run the requested service (reserve transfer, repayment, simulation, or dashboard) and print the results.
 
 This keeps business logic in reusable services so your own applications can import them directly without going through the CLI.
 
@@ -69,8 +72,8 @@ between pledged and unpledged pools.
 - **Policies** – Extend the policy runner in `ReserveManager.apply_policy` to support hybrid strategies (e.g. partial repay + top-up).
 - **Dashboard** – `DashboardSnapshot.as_dict()` is purposely structured for REST APIs. Wrap it in FastAPI or Flask to present the
   same data over HTTP.
-- **Security roadmap** – The development plan targets JWT + TOTP, RBAC, and audit logging. Add an authentication layer around CLI or web endpoints before enabling write operations.
-- **Observability** – `loan_monitor.logging_setup.setup_logging()` emits JSON logs. Pair it with Prometheus metrics (e.g. `prometheus_client`) to instrument latency, alert counts, and error rates.
+- **Security** – Extend `loan_monitor.security.AuthManager` to back user stores (e.g. PostgreSQL) or hook into SSO providers. Audit logging can be added alongside JWT issuance.
+- **Observability** – `loan_monitor.logging_setup.setup_logging()` emits JSON logs while `loan_monitor.metrics` publishes Prometheus metrics; wire them into your monitoring stack for alerting and dashboards.
 
 ## Related Documentation
 

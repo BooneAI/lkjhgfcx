@@ -6,12 +6,20 @@ from pathlib import Path
 import os
 import yaml
 
+from .security import SecuritySettings, SecurityUser
+
 
 @dataclass
 class Thresholds:
     warning: float = 0.80
     margin_call: float = 0.85
     liquidation: float = 0.91
+
+
+@dataclass
+class ObservabilitySettings:
+    enable_metrics: bool = False
+    metrics_port: int = 9000
 
 
 @dataclass
@@ -40,6 +48,8 @@ class Config:
     reserves: dict | None = None
     policy: dict | None = None
     terms: Terms = field(default_factory=Terms)
+    security: SecuritySettings = field(default_factory=SecuritySettings)
+    observability: ObservabilitySettings = field(default_factory=ObservabilitySettings)
 
 
 _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
@@ -53,6 +63,19 @@ def load_config(path: Path | None = None) -> Config:
 
     thresholds = Thresholds(**raw.get("thresholds", {}))
     terms = Terms(**raw.get("terms", {}))
+    security_raw = raw.get("security", {})
+    users_raw = security_raw.get("users", {})
+    security = SecuritySettings(
+        jwt_secret=security_raw.get("jwt_secret", "change-me"),
+        jwt_algorithm=security_raw.get("jwt_algorithm", "HS256"),
+        token_ttl_seconds=security_raw.get("token_ttl_seconds", 900),
+        totp_valid_window=security_raw.get("totp_valid_window", 1),
+        users={
+            name: SecurityUser(**data)
+            for name, data in users_raw.items()
+        },
+    )
+    observability = ObservabilitySettings(**raw.get("observability", {}))
 
     return Config(
         api_keys=raw.get("api_keys", {}),
@@ -64,7 +87,15 @@ def load_config(path: Path | None = None) -> Config:
         poll_interval=raw.get("poll_interval", 600),
         notification_channels=raw.get("notification_channels", []),
         terms=terms,
+        security=security,
+        observability=observability,
     )
 
 
-__all__ = ["Config", "Thresholds", "Terms", "load_config"]
+__all__ = [
+    "Config",
+    "Thresholds",
+    "Terms",
+    "ObservabilitySettings",
+    "load_config",
+]

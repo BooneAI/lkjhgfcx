@@ -2,3 +2,6 @@ PyYAML>=6.0
 aiohttp>=3.8
 pytest>=7.0
 matplotlib>=3.5
+prometheus-client>=0.16
+PyJWT>=2.8
+pyotp>=2.9

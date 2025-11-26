@@ -1,8 +1,16 @@
 """Core package for loan monitoring services."""
 
-from .config import Config, Thresholds, Terms, load_config  # noqa: F401
+from .config import (  # noqa: F401
+    Config,
+    Thresholds,
+    Terms,
+    ObservabilitySettings,
+    load_config,
+)
 from .db import get_connection  # noqa: F401
 from .logging_setup import setup_logging  # noqa: F401
+from .metrics import get_metrics, init_metrics_server  # noqa: F401
+from .security import AuthManager, SecuritySettings, SecurityUser  # noqa: F401
 from .services import (  # noqa: F401
     PriceService,
     LoanState,
@@ -24,9 +32,15 @@ __all__ = [
     "Config",
     "Thresholds",
     "Terms",
+    "ObservabilitySettings",
     "load_config",
     "get_connection",
     "setup_logging",
+    "get_metrics",
+    "init_metrics_server",
+    "AuthManager",
+    "SecuritySettings",
+    "SecurityUser",
     "PriceService",
     "LoanState",
     "compute_ltv",

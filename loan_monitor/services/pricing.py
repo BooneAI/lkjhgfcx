@@ -5,13 +5,17 @@ import time
 from typing import Optional
 
 
+from ..metrics import get_metrics
+
+
 class PriceService:
     """Fetch BTC price with caching and failover between sources."""
 
-    def __init__(self, ttl: int = 600) -> None:
+    def __init__(self, ttl: int = 600, metrics=None) -> None:
         self.ttl = ttl
         self._cache: Optional[float] = None
         self._last_fetch: float = 0.0
+        self.metrics = metrics or get_metrics()
 
     async def _fetch_binance(self) -> float:
         url = "https://api.binance.com/api/v3/ticker/price"
@@ -34,13 +38,20 @@ class PriceService:
         if self._cache is not None and (now - self._last_fetch) < self.ttl:
             return self._cache
 
-        for source in (self._fetch_binance, self._fetch_coingecko):
+        sources = (
+            ("binance", self._fetch_binance),
+            ("coingecko", self._fetch_coingecko),
+        )
+        for label, source in sources:
+            start = time.perf_counter()
             try:
                 price = await source()
+                self.metrics.observe_price_fetch(label, time.perf_counter() - start, True)
                 self._cache = price
                 self._last_fetch = now
                 return price
             except Exception:
+                self.metrics.observe_price_fetch(label, time.perf_counter() - start, False)
                 continue
         raise RuntimeError("all price sources failed")
 

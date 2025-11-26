@@ -30,3 +30,17 @@ terms:
   last_reviewed: "2023-01-01"
   documentation_url: "https://www.binance.com/en/support/faq/1c9dddb774054983992b8977ae36577a"
   notes: "Thresholds reflect Binance Flexible Loan defaults but may change."
+security:
+  jwt_secret: "replace-with-strong-secret"
+  token_ttl_seconds: 900
+  totp_valid_window: 1
+  users:
+    admin:
+      role: admin
+      totp_secret: "JBSWY3DPEHPK3PXP"
+    trader:
+      role: trader
+      totp_secret: "NB2W45DFOIZA===="
+observability:
+  enable_metrics: true
+  metrics_port: 9000

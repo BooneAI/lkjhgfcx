@@ -7,8 +7,9 @@ same module.
 ## Prerequisites
 
 1. Install dependencies (`pip install -r requirements.txt`).
-2. Configure `config.yaml` with your loan, collateral, thresholds, reserves, and notification preferences.
+2. Configure `config.yaml` with your loan, collateral, thresholds, reserves, notification preferences, and the `security` block (user roles + TOTP secrets).
 3. (Optional) export `LOAN_MONITOR_CONFIG` to point to an environment-specific configuration file.
+4. Generate a JWT for write commands via `python -m loan_monitor.cli auth --user <name> --totp <code>` and either pass it with `--token` or export `LOAN_MONITOR_TOKEN`.
 
 ## Monitoring LTV
 
@@ -38,6 +39,17 @@ if __name__ == "__main__":
 - Compare the current LTV against the configured thresholds.
 - Emit alerts via the configured notifiers and execute reserve policies when thresholds are breached.
 
+## Authentication
+
+Reserve transfers and repayments require a valid JWT. Generate one from a configured user by supplying a fresh TOTP code:
+
+```bash
+python -m loan_monitor.cli auth --user trader --totp 123456
+export LOAN_MONITOR_TOKEN="<token>"
+```
+
+Tokens expire after `token_ttl_seconds`; rerun the `auth` command whenever you receive an authentication error.
+
 ## Managing Reserves
 
 Inspect pledged/unpledged balances:
@@ -49,8 +61,8 @@ python -m loan_monitor.cli show
 Transfer collateral between reserves and pledged collateral:
 
 ```bash
-python -m loan_monitor.cli transfer btc 0.05 to_collateral
-python -m loan_monitor.cli transfer usdt 100 to_reserve
+python -m loan_monitor.cli transfer btc 0.05 to_collateral --token "$LOAN_MONITOR_TOKEN"
+python -m loan_monitor.cli transfer usdt 100 to_reserve --token "$LOAN_MONITOR_TOKEN"
 ```
 
 Transfers automatically update the SQLite tables so future alerts and dashboards reflect the new state.
@@ -60,13 +72,13 @@ Transfers automatically update the SQLite tables so future alerts and dashboards
 Execute a repayment (with validation against overpayment):
 
 ```bash
-python -m loan_monitor.cli repay 250
+python -m loan_monitor.cli repay 250 --token "$LOAN_MONITOR_TOKEN"
 ```
 
 Simulate the impact without touching balances:
 
 ```bash
-python -m loan_monitor.cli repay 250 --dry-run
+python -m loan_monitor.cli repay 250 --dry-run --token "$LOAN_MONITOR_TOKEN"
 ```
 
 Both commands output the resulting principal and recalculated LTV. The repayment service deducts stablecoins from the `reserves`
@@ -137,6 +149,6 @@ The dashboard highlights status, recommended actions, margin-call headroom, last
 With the foundational workflows automated, the next development milestones include:
 
 - Wiring the monitoring loop into a long-running service (systemd, Docker, Kubernetes CronJob).
-- Introducing authentication (JWT + TOTP) before exposing repayment or reserve transfers over a network interface.
-- Instrumenting Prometheus metrics (`prometheus_client`) for price fetch latency, alert counts, and policy execution outcomes.
+- Integrating the JWT/TOTP flow with your identity provider or adding audit logging for security-sensitive actions.
+- Expanding Prometheus coverage to include notifier latency, policy execution counts, and downstream API timings.
 - Publishing these docs via MkDocs for wider organisational distribution.

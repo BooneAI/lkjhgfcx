@@ -4,8 +4,10 @@ import argparse
 import asyncio
 import json
 import math
+import os
 
 from .config import load_config
+from .security import AuthManager
 from .services.reserve import ReserveManager
 from .services.repayment import RepaymentService
 from .services.simulations import plan_collateral, simulate_volatility, stress_test
@@ -16,13 +18,19 @@ def main() -> None:  # pragma: no cover - simple wrapper
     parser = argparse.ArgumentParser(prog="loan-monitor")
     sub = parser.add_subparsers(dest="cmd")
     sub.add_parser("show")
+    auth_parser = sub.add_parser("auth")
+    auth_parser.add_argument("--user", required=True)
+    auth_parser.add_argument("--totp", required=True)
+
     t = sub.add_parser("transfer")
     t.add_argument("asset")
     t.add_argument("amount", type=float)
     t.add_argument("direction", choices=["to_collateral", "to_reserve"])
+    t.add_argument("--token")
     r = sub.add_parser("repay")
     r.add_argument("amount", type=float)
     r.add_argument("--dry-run", action="store_true")
+    r.add_argument("--token")
     plan = sub.add_parser("plan")
     plan.add_argument("--loan", type=float)
     plan.add_argument("--btc-price", type=float, required=True)
@@ -54,15 +62,21 @@ def main() -> None:  # pragma: no cover - simple wrapper
     )
     args = parser.parse_args()
     cfg = load_config()
+    auth = AuthManager(cfg.security)
     manager = ReserveManager(cfg)
     if args.cmd == "show":
         for asset, bal in manager.get_balances().items():
             print(f"{asset}: pledged={bal['pledged']} unpledged={bal['unpledged']}")
+    elif args.cmd == "auth":
+        token = auth.authenticate(args.user, args.totp)
+        print(token)
     elif args.cmd == "transfer":
+        _verify_token(auth, args.token, "trader")
         manager.transfer(args.asset, args.amount, to_collateral=args.direction == "to_collateral")
         bal = manager.get_balances()[args.asset]
         print(f"{args.asset}: pledged={bal['pledged']} unpledged={bal['unpledged']}")
     elif args.cmd == "repay":
+        _verify_token(auth, args.token, "trader")
         service = RepaymentService(cfg)
         result = service.repay(args.amount, dry_run=args.dry_run)
         print(
@@ -165,6 +179,13 @@ def main() -> None:  # pragma: no cover - simple wrapper
             print(json.dumps(snapshot.as_dict(), indent=2))
         else:
             print(render_dashboard(snapshot))
+
+
+def _verify_token(auth: AuthManager, token_arg: str | None, role: str) -> None:
+    token = token_arg or os.environ.get("LOAN_MONITOR_TOKEN")
+    if not token:
+        raise SystemExit("Authentication token required. Run `loan-monitor auth` first or set LOAN_MONITOR_TOKEN.")
+    auth.verify_token(token, required_role=role)
 
 
 if __name__ == "__main__":  # pragma: no cover

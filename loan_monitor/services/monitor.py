@@ -7,6 +7,7 @@ from typing import Dict
 
 from ..config import Config
 from ..db import get_connection
+from ..metrics import get_metrics, init_metrics_server
 from ..notifications import Notifier, ConsoleNotifier
 from .ltv import LoanState, compute_ltv
 from .pricing import PriceService
@@ -32,30 +33,42 @@ class LTVMonitor:
         self.reserve_manager = reserve_manager or ReserveManager(config, conn=self.conn)
         self._last_alert: Dict[str, float] = {}
         self.logger = logging.getLogger(__name__)
+        self.metrics = get_metrics()
+        if config.observability.enable_metrics:
+            try:
+                init_metrics_server(config.observability.metrics_port)
+            except OSError:
+                self.logger.warning("metrics server failed to start", exc_info=True)
 
     async def check_once(self) -> float:
         """Check LTV once and send alerts if needed."""
-        price = await self.price_service.get_price()
-        cur = self.conn.cursor()
-        cur.execute("SELECT principal, interest FROM loan WHERE id = 1")
-        loan_row = cur.fetchone()
-        if not loan_row:
-            self.logger.debug("loan row missing")
+        try:
+            price = await self.price_service.get_price()
+            cur = self.conn.cursor()
+            cur.execute("SELECT principal, interest FROM loan WHERE id = 1")
+            loan_row = cur.fetchone()
+            if not loan_row:
+                self.logger.debug("loan row missing")
+                return 0.0
+            principal, interest = loan_row
+            cur.execute(
+                "SELECT btc_amount, usdt_amount FROM collateral_snapshot ORDER BY id DESC LIMIT 1"
+            )
+            snap = cur.fetchone()
+            if snap:
+                btc_amount, usdt_amount = snap
+            else:
+                btc_amount = self.config.collateral.get("btc", 0.0)
+                usdt_amount = self.config.collateral.get("usdt", 0.0)
+            state = LoanState(principal, interest, btc_amount, usdt_amount, price)
+            ltv = compute_ltv(state)
+            self.metrics.update_ltv(ltv)
+            await self._maybe_alert(ltv, state)
+            return ltv
+        except Exception:
+            self.metrics.record_check_failure()
+            self.logger.exception("monitor check failed")
             return 0.0
-        principal, interest = loan_row
-        cur.execute(
-            "SELECT btc_amount, usdt_amount FROM collateral_snapshot ORDER BY id DESC LIMIT 1"
-        )
-        snap = cur.fetchone()
-        if snap:
-            btc_amount, usdt_amount = snap
-        else:
-            btc_amount = self.config.collateral.get("btc", 0.0)
-            usdt_amount = self.config.collateral.get("usdt", 0.0)
-        state = LoanState(principal, interest, btc_amount, usdt_amount, price)
-        ltv = compute_ltv(state)
-        await self._maybe_alert(ltv, state)
-        return ltv
 
     async def _maybe_alert(self, ltv: float, state: LoanState) -> None:
         thresholds = self.config.thresholds
@@ -74,6 +87,7 @@ class LTVMonitor:
                     )
                     await self.notifier.send(name, msg)
                     self._last_alert[name] = time.time()
+                    self.metrics.record_alert(name)
                     if name == "margin_call" and self.reserve_manager:
                         self.reserve_manager.apply_policy(state)
                 break
