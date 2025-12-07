@@ -1,5 +1,13 @@
 [
     {
+        "title": "Bafotech — Manufacturing Operations Data Simulation + Cleaning + EDA",
+        "category": "data",
+        "alt": "Manufacturing data simulation case study",
+        "image": "/blogFeatured.png",
+        "link": "/blog/bafotech-ops",
+        "excerpt": "End-to-end Python workflow for simulating production, cleaning issues, and generating EDA plots for a factory month."
+    },
+    {
         "title": "The new standard of Opening and Closing",
         "category": "design",
         "alt": "blog new standard of closing",
