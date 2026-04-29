@@ -166,7 +166,13 @@ The footer works in a similar way. It assumes each element in the array has a he
 
 ### Included Default Testing
 
-We’ve included some tooling that helps us maintain these templates. This template currently uses:
+This template does not include a unit test suite. To validate the project quickly, run this build smoke check:
+
+```bash
+npm run build
+```
+
+We also include maintenance tooling:
 
 - [Renovate](https://www.mend.io/free-developer-tools/renovate/) - to regularly update our dependencies
 
